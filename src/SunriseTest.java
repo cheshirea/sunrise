@@ -1,5 +1,5 @@
-import javax.script.ScriptEngineManager;
-import javax.script.ScriptException;
+import util.FormulaHandler;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -100,16 +100,18 @@ public class SunriseTest {
         Files.write(output, toWrite, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
     }
 
-    private static double resolveCell(int rowIndex, int colIndex, List<String> dependentCellsStack) {
+    private static double resolveCell(int rowIndex, int colIndex, LinkedList<String> dependentCellsStack) {
         String currentAddress = rowIndexNumberToString(rowIndex) + (colIndex + 1);
 
         dependentCellsStack.add(currentAddress);
-        int indexOfCurrentAddress = dependentCellsStack.indexOf(currentAddress);
-
+        int indexOfCurrentAddress = dependentCellsStack.indexOf(currentAddress); // можно просто сделать LinkedHashSet, но для вывода луше так
         if (indexOfCurrentAddress != dependentCellsStack.size() - 1) {
-            IntStream.range(0, indexOfCurrentAddress).forEach(dependentCellsStack::remove); // необязательно, просто стек в e.message понятнее
+            for (int i = 0; i < indexOfCurrentAddress; i++) {
+                dependentCellsStack.removeFirst();// необязательно, просто стек в e.message понятнее
+            }
             throw new RuntimeException("Can't pass through data, recursion in " + String.join(" -> ", dependentCellsStack));
         }
+
         if (sourceData.size() <= rowIndex || sourceData.get(rowIndex).length <= colIndex)
             throw new RuntimeException("Invalid link: " + currentAddress);
 
@@ -146,18 +148,9 @@ public class SunriseTest {
         }
 
         dependentCellsStack.remove(currentAddress);
-        return evaluateFormula(preparedFormulaString);
-    }
 
-    private static double evaluateFormula(String expression) {
-        // подсмотрел готовое решение
-        javax.script.ScriptEngineManager sem = new ScriptEngineManager();
-        javax.script.ScriptEngine e = sem.getEngineByName("JavaScript");
-        try {
-            return (double) e.eval(expression);
-        } catch (ScriptException e1) {
-            throw new RuntimeException("Can't evaluate expression: " + expression);
-        }
+        System.out.print("Eval " + currentAddress + ": ");
+        return FormulaHandler.evaluateFormula(preparedFormulaString);
     }
 
     private static String rowIndexNumberToString(int rowIndex) {
